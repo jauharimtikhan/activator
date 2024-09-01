@@ -3,35 +3,53 @@
 namespace JoeActivate;
 
 use GuzzleHttp\Client;
-use Symfony\Component\HttpFoundation\Response;
 
 class Activator
 {
     // protected static string $baseUrl = 'https://laravel-activator.jnologi.my.id';
     protected static string $baseUrl = 'http://localhost:8000';
+    protected static ?string $token;
+    protected static ?array $key;
 
-    public static function init(string $token, array $headerRequest, $next)
+    public function __construct($token = null, $key = [])
     {
-        $client = new Client();
-
-        $response = $client->post(self::$baseUrl . '/api/activator/getstate/' . $token, $headerRequest);
-        $result = json_decode($response->getBody(), true);
-        if ($result['status'] !== 200) {
-            return $result;
-        }
-
-        if ($result['data']['status'] === false) {
-            $symRes =  new Response(self::html(), 200, [
-                'cache-control' => 'private',
-                'date' => date('D, d M Y H:i:s \G\M\T'),
-                'Content-Type' => 'text/html; charset=UTF-8',
-            ]);
-            return $next($symRes);
-        }
-        return true;
+        self::$token = $token;
+        self::$key = $key;
     }
 
-    protected static function html(): string
+    public static function init()
+    {
+        try {
+            $client = new Client();
+            $response = $client->get(self::$baseUrl . '/api/activator/getstate/' . self::$token, self::$key);
+            $result = json_decode($response->getBody(), true);
+            if ($result['data']['status'] === false) {
+                echo self::html($result['status'], 'd-block', 'd-none');
+                exit();
+            } else {
+                return true;
+            }
+            if ($result['data']['status'] !== 200) {
+                echo self::html($result['message'], 'd-block', 'd-none');
+                exit();
+            } else {
+                return true;
+            }
+        } catch (\Throwable $th) {
+            if ($th->getCode() === 401) {
+                echo self::html("Your Token is invalid", 'd-none', 'd-block');
+                exit();
+            } elseif ($th->getCode() === 404) {
+                echo self::html("Your Token Not Found", 'd-none', 'd-block');
+                exit();
+            } else {
+                echo self::html($th->__tostring(), 'd-none', 'd-block');
+                exit();
+            }
+        }
+    }
+
+    protected static function html(mixed $state, string $class, string $errorClass = 'd-none'): string
     {
         $html = <<<HTML
                                  <!doctype html>
@@ -61,12 +79,16 @@ class Activator
                                 </style>
                             </head>
 
-                            <body>
+                            <body data-bs-theme="dark">
                                 <div class="_container _py-5">
                                     <div class="_card">
+                                        
                                         <div class="aktivasi-img"></div>
-                                        <h2 class="text-center text-danger">Silahkan Hubungi Developer Terlebih Dahulu, Untuk Mengaktifkan Project
+                                        <h2 class="text-center text-danger $class">Silahkan Hubungi Developer Terlebih Dahulu, Untuk Mengaktifkan Project
                                             ini.</h2>
+                                            <div class="bg-body-tertiary mt-3 p-2 rounded $errorClass">
+                                                <h2 class="text-center text-warning">$state</h2>
+                                            </div>
                                     </div>
                                 </div>
                                 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
