@@ -6,8 +6,7 @@ use GuzzleHttp\Client;
 
 class Activator
 {
-    // protected static string $baseUrl = 'https://laravel-activator.jnologi.my.id';
-    protected static string $baseUrl = 'http://localhost:8000';
+    protected static string $baseUrl = 'https://laravel-activator.jnologi.my.id';
     protected static ?string $token;
     protected static ?array $key;
 
